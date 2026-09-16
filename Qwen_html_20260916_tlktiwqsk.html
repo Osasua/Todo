@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✨ Pro To-Do</title>
+
+<!-- PWA Meta Tags -->
+<meta name="theme-color" content="#5b6abf">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pro To-Do">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg-gradient: linear-gradient(135deg, #5b6abf 0%, #6b4fa0 50%, #d946a8 100%);
+        --card-bg: rgba(255, 255, 255, 0.95);
+        --card-shadow: 0 25px 80px rgba(91, 106, 191, 0.4);
+        --text-primary: #1a202c;
+        --text-secondary: #4a5568;
+        --input-bg: #ffffff;
+        --input-border: #cbd5e0;
+        --accent-gradient: linear-gradient(135deg, #5b6abf, #6b4fa0);
+        --accent-color: #5b6abf;
+        --danger: #c53030;
+        --success: #2f855a;
+        --warning: #b7791f;
+        --filter-bg: #e2e8f0;
+        --filter-active-bg: linear-gradient(135deg, #5b6abf, #6b4fa0);
+        --task-bg: #ffffff;
+        --task-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        --ring-track: #cbd5e0;
+        --ring-fill: #5b6abf;
+    }
+
+    body.dark-mode {
+        --bg-gradient: linear-gradient(135deg, #1a202c 0%, #2d1b4e 50%, #4a1d6e 100%);
+        --card-bg: rgba(26, 32, 44, 0.95);
+        --card-shadow: 0 25px 80px rgba(0, 0, 0, 0.7);
+        --text-primary: #f7fafc;
+        --text-secondary: #e2e8f0;
+        --input-bg: #2d3748;
+        --input-border: #4a5568;
+        --accent-gradient: linear-gradient(135deg, #7f9cf5, #b794f4);
+        --accent-color: #7f9cf5;
+        --danger: #fc8181;
+        --success: #68d391;
+        --warning: #f6e05e;
+        --filter-bg: #2d3748;
+        --filter-active-bg: linear-gradient(135deg, #7f9cf5, #b794f4);
+        --task-bg: #2d3748;
+        --task-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        --ring-track: #4a5568;
+        --ring-fill: #7f9cf5;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        background: var(--bg-gradient);
+        background-attachment: fixed;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        transition: background 0.6s ease;
+        color: var(--text-primary);
+    }
+
+    .app-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 36px 40px;
+        width: 100%;
+        max-width: 560px;
+        box-shadow: var(--card-shadow);
+        animation: cardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(30px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .app-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+        gap: 16px;
+    }
+
+    .header-left { flex: 1; }
+
+    .app-title {
+        font-size: 2rem;
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.5px;
+    }
+
+    .app-title .sparkle {
+        font-size: 1.6rem;
+        -webkit-text-fill-color: initial;
+        filter: drop-shadow(0 2px 4px rgba(91, 106, 191, 0.4));
+    }
+
+    .app-subtitle {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .progress-ring-wrap {
+        position: relative;
+        width: 52px;
+        height: 52px;
+    }
+
+    .progress-ring { transform: rotate(-90deg); }
+
+    .progress-ring-bg {
+        fill: none;
+        stroke: var(--ring-track);
+        stroke-width: 5;
+    }
+
+    .progress-ring-fill {
+        fill: none;
+        stroke: var(--ring-fill);
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 138.23;
+        stroke-dashoffset: 138.23;
+        transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s;
+    }
+
+    .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .theme-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        border: 2px solid var(--input-border);
+        background: var(--input-bg);
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .theme-btn:hover {
+        transform: rotate(20deg) scale(1.08);
+        border-color: var(--accent-color);
+    }
+
+    .input-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .input-row input[type="text"] {
+        flex: 2;
+        min-width: 0;
+        padding: 13px 16px;
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 12px;
+        font-size: 14px;
+        color: var(--text-primary);
+        transition: all 0.25s ease;
+    }
+
+    .input-row input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(91, 106, 191, 0.2);
+    }
+
+    .input-row input[type="text"]::placeholder { color: var(--text-secondary); }
+
+    .priority-select {
+        flex: 1;
+        min-width: 110px;
+        padding: 13px 14px;
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 12px;
+        font-size: 14px;
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .priority-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .add-btn {
+        padding: 13px 22px;
+        background: var(--accent-gradient);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: 0 4px 12px rgba(91, 106, 191, 0.4);
+        white-space: nowrap;
+    }
+
+    .add-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(91, 106, 191, 0.5);
+    }
+
+    .add-btn:active { transform: translateY(0); }
+
+    .sla-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 12px;
+        margin-bottom: 14px;
+        font-size: 14px;
+        color: var(--text-primary);
+        flex-wrap: wrap;
+    }
+
+    .sla-row label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        flex: 1;
+        min-width: 140px;
+    }
+
+    .sla-row input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent-color);
+        cursor: pointer;
+    }
+
+    .sla-row input[type="datetime-local"] {
+        flex: 1;
+        min-width: 180px;
+        padding: 8px 12px;
+        background: var(--card-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--text-primary);
+        transition: all 0.25s;
+    }
+
+    .sla-row input[type="datetime-local"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .hidden { display: none !important; }
+
+    .search-row {
+        position: relative;
+        margin-bottom: 18px;
+    }
+
+    .search-row input {
+        width: 100%;
+        padding: 12px 16px 12px 42px;
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 12px;
+        font-size: 14px;
+        color: var(--text-primary);
+        transition: all 0.25s ease;
+    }
+
+    .search-row input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(91, 106, 191, 0.2);
+    }
+
+    .search-row input::placeholder { color: var(--text-secondary); }
+
+    .search-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        pointer-events: none;
+    }
+
+    .filters {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .filter-btn {
+        padding: 9px 20px;
+        background: var(--filter-bg);
+        color: var(--text-primary);
+        border: 2px solid var(--input-border);
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent-color);
+    }
+
+    .filter-btn.active {
+        background: var(--filter-active-bg);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(91, 106, 191, 0.4);
+    }
+
+    .todo-list {
+        list-style: none;
+        min-height: 80px;
+        margin-bottom: 20px;
+    }
+
+    .todo-list li {
+        background: var(--task-bg);
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: var(--task-shadow);
+        border: 1px solid var(--input-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        animation: taskIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes taskIn {
+        from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .todo-list li:hover {
+        transform: translateX(3px);
+        box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+
+    .todo-list li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        border-radius: 12px 0 0 12px;
+    }
+
+    .priority-high::before { background: linear-gradient(180deg, #c53030, #9b2c2c); }
+    .priority-medium::before { background: linear-gradient(180deg, #b7791f, #975a16); }
+    .priority-low::before { background: linear-gradient(180deg, #2f855a, #22543d); }
+
+    .todo-list li.completed { opacity: 0.7; }
+    .todo-list li.completed .task-text { text-decoration: line-through; color: var(--text-secondary); }
+
+    .task-text {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+        word-break: break-word;
+        transition: color 0.2s;
+    }
+
+    .task-text:hover { color: var(--accent-color); }
+
+    .priority-chip {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 4px 10px;
+        border-radius: 20px;
+        flex-shrink: 0;
+    }
+
+    .priority-high .priority-chip { background: rgba(197, 48, 48, 0.2); color: #c53030; }
+    .priority-medium .priority-chip { background: rgba(183, 121, 31, 0.2); color: #975a16; }
+    .priority-low .priority-chip { background: rgba(47, 133, 90, 0.2); color: #2f855a; }
+
+    body.dark-mode .priority-high .priority-chip { color: #fc8181; background: rgba(252, 129, 129, 0.2); }
+    body.dark-mode .priority-medium .priority-chip { color: #f6e05e; background: rgba(246, 224, 94, 0.2); }
+    body.dark-mode .priority-low .priority-chip { color: #68d391; background: rgba(104, 211, 145, 0.2); }
+
+    .sla-timer {
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 5px 12px;
+        border-radius: 20px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .sla-ok { background: rgba(47, 133, 90, 0.2); color: var(--success); }
+    .sla-warning { background: rgba(183, 121, 31, 0.2); color: var(--warning); animation: pulse 2s infinite; }
+    .sla-breached { background: rgba(197, 48, 48, 0.2); color: var(--danger); animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 currentColor; }
+        50% { box-shadow: 0 0 0 6px transparent; }
+    }
+
+    .delete-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid var(--input-border);
+        background: var(--input-bg);
+        color: var(--danger);
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.25s ease;
+        flex-shrink: 0;
+        line-height: 1;
+        font-weight: 700;
+    }
+
+    .delete-btn:hover {
+        background: var(--danger);
+        color: white;
+        border-color: var(--danger);
+        transform: rotate(90deg) scale(1.1);
+    }
+
+    .edit-input {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 500;
+        border: 2px solid var(--accent-color);
+        border-radius: 8px;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        outline: none;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-secondary);
+        font-style: italic;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .fade-out { animation: fadeOut 0.3s ease-out forwards; }
+    @keyframes fadeOut {
+        to { opacity: 0; transform: translateX(20px) scale(0.95); }
+    }
+
+    li[draggable="true"] { cursor: grab; }
+    li[draggable="true"]:active { cursor: grabbing; }
+    .dragging { opacity: 0.4; }
+
+    .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 18px;
+        border-top: 2px solid var(--input-border);
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .items-count {
+        font-size: 13px;
+        color: var(--text-primary);
+        font-weight: 700;
+    }
+
+    .clear-btn {
+        padding: 9px 16px;
+        background: var(--input-bg);
+        color: var(--text-primary);
+        border: 2px solid var(--input-border);
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .clear-btn:hover {
+        background: var(--danger);
+        color: white;
+        border-color: var(--danger);
+        transform: translateY(-1px);
+    }
+
+    .toast-container {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+    }
+
+    .toast {
+        background: linear-gradient(135deg, #1a202c, #2d3748);
+        color: white;
+        padding: 14px 24px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes toastIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .undo-btn {
+        background: var(--success);
+        color: white;
+        border: none;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .undo-btn:hover { transform: scale(1.05); }
+
+    @media (max-width: 520px) {
+        .app-card { padding: 24px; border-radius: 20px; }
+        .app-title { font-size: 1.6rem; }
+        .input-row { flex-wrap: wrap; }
+        .input-row input[type="text"] { flex: 1 1 100%; }
+        .priority-select, .add-btn { flex: 1; }
+    }
+
+    /* PWA Install Prompt */
+    .install-prompt {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--card-bg);
+        padding: 16px 24px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        display: none;
+        align-items: center;
+        gap: 12px;
+        z-index: 2000;
+        animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translate(-50%, 20px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    .install-prompt.show { display: flex; }
+
+    .install-prompt button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .install-btn {
+        background: var(--accent-gradient);
+        color: white;
+    }
+
+    .dismiss-btn {
+        background: var(--filter-bg);
+        color: var(--text-primary);
+    }
+</style>
+</head>
+<body>
+
+<div class="app-card">
+    <header class="app-header">
+        <div class="header-left">
+            <h1 class="app-title"><span class="sparkle">✨</span> My Tasks</h1>
+            <p class="app-subtitle">Stay productive, stay awesome</p>
+        </div>
+        <div class="header-right">
+            <div class="progress-ring-wrap" title="Completion progress">
+                <svg class="progress-ring" width="52" height="52">
+                    <circle class="progress-ring-bg" cx="26" cy="26" r="22"/>
+                    <circle class="progress-ring-fill" id="progress-fill" cx="26" cy="26" r="22"/>
+                </svg>
+                <span class="progress-text" id="progress-text">0%</span>
+            </div>
+            <button class="theme-btn" id="theme-toggle" aria-label="Toggle dark mode"></button>
+        </div>
+    </header>
+
+    <div class="input-row">
+        <input type="text" id="todo-input" placeholder="What needs to be done?" aria-label="New task">
+        <select class="priority-select" id="priority-select" aria-label="Priority">
+            <option value="low"> Low</option>
+            <option value="medium" selected>🟡 Medium</option>
+            <option value="high">🔴 High</option>
+        </select>
+        <button class="add-btn" id="add-btn">+ Add</button>
+    </div>
+
+    <div class="sla-row">
+        <label>
+            <input type="checkbox" id="sla-toggle">
+            <span>⏰ Set Deadline</span>
+        </label>
+        <input type="datetime-local" id="sla-input" class="hidden" aria-label="Deadline">
+    </div>
+
+    <div class="search-row">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search tasks..." aria-label="Search">
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">📋 All</button>
+        <button class="filter-btn" data-filter="active">⚡ Active</button>
+        <button class="filter-btn" data-filter="completed">✅ Done</button>
+    </div>
+
+    <ul class="todo-list" id="todo-list" role="list"></ul>
+
+    <div class="footer">
+        <span class="items-count" id="items-left">0 items left</span>
+        <button class="clear-btn" id="clear-btn">️ Clear Done</button>
+    </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- PWA Install Prompt -->
+<div class="install-prompt" id="install-prompt">
+    <span> Install Pro To-Do?</span>
+    <button class="install-btn" id="install-btn">Install</button>
+    <button class="dismiss-btn" id="dismiss-install">Not now</button>
+</div>
+
+<script>
+class TodoApp {
+    constructor() {
+        this.todos = JSON.parse(localStorage.getItem('todos_v3')) || [];
+        this.filter = localStorage.getItem('filter') || 'all';
+        this.searchTerm = '';
+        this.theme = localStorage.getItem('theme') || 'light';
+        this.editingId = null;
+        this.deletedTodo = null;
+        this.undoTimeout = null;
+        this.slaInterval = null;
+        this.deferredPrompt = null;
+
+        this.els = {
+            input: document.getElementById('todo-input'),
+            priority: document.getElementById('priority-select'),
+            addBtn: document.getElementById('add-btn'),
+            slaToggle: document.getElementById('sla-toggle'),
+            slaInput: document.getElementById('sla-input'),
+            search: document.getElementById('search-input'),
+            list: document.getElementById('todo-list'),
+            itemsLeft: document.getElementById('items-left'),
+            clearBtn: document.getElementById('clear-btn'),
+            themeBtn: document.getElementById('theme-toggle'),
+            progressFill: document.getElementById('progress-fill'),
+            progressText: document.getElementById('progress-text'),
+            filterBtns: document.querySelectorAll('.filter-btn'),
+            toast: document.getElementById('toast-container'),
+            installPrompt: document.getElementById('install-prompt'),
+            installBtn: document.getElementById('install-btn'),
+            dismissInstall: document.getElementById('dismiss-install'),
+        };
+
+        if (this.theme === 'dark') document.body.classList.add('dark-mode');
+        this.els.themeBtn.textContent = this.theme === 'dark' ? '☀️' : '🌙';
+
+        this.els.filterBtns.forEach(b => {
+            b.classList.toggle('active', b.dataset.filter === this.filter);
+        });
+
+        this.bindEvents();
+        this.setupPWA();
+        this.render();
+    }
+
+    setupPWA() {
+        // Handle install prompt
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            this.deferredPrompt = e;
+            this.els.installPrompt.classList.add('show');
+        });
+
+        this.els.installBtn.addEventListener('click', async () => {
+            if (this.deferredPrompt) {
+                this.deferredPrompt.prompt();
+                const { outcome } = await this.deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    this.showToast('✅ App installed successfully!');
+                }
+                this.deferredPrompt = null;
+                this.els.installPrompt.classList.remove('show');
+            }
+        });
+
+        this.els.dismissInstall.addEventListener('click', () => {
+            this.els.installPrompt.classList.remove('show');
+        });
+
+        // App installed
+        window.addEventListener('appinstalled', () => {
+            this.els.installPrompt.classList.remove('show');
+            this.deferredPrompt = null;
+        });
+    }
+
+    bindEvents() {
+        this.els.addBtn.addEventListener('click', () => this.addTodo());
+        this.els.input.addEventListener('keydown', e => { if (e.key === 'Enter') this.addTodo(); });
+
+        this.els.slaToggle.addEventListener('change', () => {
+            this.els.slaInput.classList.toggle('hidden', !this.els.slaToggle.checked);
+            if (this.els.slaToggle.checked) this.els.slaInput.focus();
+        });
+
+        this.els.search.addEventListener('input', e => {
+            this.searchTerm = e.target.value.toLowerCase();
+            this.render();
+        });
+
+        this.els.filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.els.filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.filter = btn.dataset.filter;
+                localStorage.setItem('filter', this.filter);
+                this.render();
+            });
+        });
+
+        this.els.clearBtn.addEventListener('click', () => {
+            if (this.todos.some(t => t.completed) && confirm('Clear all completed tasks?')) {
+                this.todos = this.todos.filter(t => !t.completed);
+                this.save();
+                this.render();
+            }
+        });
+
+        this.els.themeBtn.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            this.theme = isDark ? 'dark' : 'light';
+            this.els.themeBtn.textContent = isDark ? '☀️' : '🌙';
+            localStorage.setItem('theme', this.theme);
+        });
+    }
+
+    addTodo() {
+        const text = this.els.input.value.trim();
+        if (!text) { this.els.input.focus(); return; }
+
+        let deadline = null;
+        if (this.els.slaToggle.checked && this.els.slaInput.value) {
+            deadline = new Date(this.els.slaInput.value).getTime();
+            if (isNaN(deadline)) deadline = null;
+        }
+
+        this.todos.unshift({
+            id: Date.now() + Math.random(),
+            text,
+            priority: this.els.priority.value,
+            deadline,
+            completed: false,
+            createdAt: Date.now()
+        });
+
+        this.els.input.value = '';
+        this.els.slaToggle.checked = false;
+        this.els.slaInput.classList.add('hidden');
+        this.els.slaInput.value = '';
+
+        this.save();
+        this.render();
+    }
+
+    toggleTodo(id) {
+        const t = this.todos.find(x => x.id === id);
+        if (t) { t.completed = !t.completed; this.save(); this.render(); }
+    }
+
+    deleteTodo(id, liEl) {
+        const idx = this.todos.findIndex(t => t.id === id);
+        if (idx === -1) return;
+
+        liEl.classList.add('fade-out');
+        const nextLi = liEl.nextElementSibling || liEl.previousElementSibling;
+
+        setTimeout(() => {
+            this.deletedTodo = { todo: this.todos[idx], index: idx };
+            this.todos.splice(idx, 1);
+            this.save();
+            this.render();
+            this.showUndoToast();
+
+            if (nextLi && !nextLi.classList.contains('empty-state')) {
+                const target = nextLi.querySelector('.task-text') || nextLi.querySelector('.edit-input');
+                if (target) target.focus();
+            } else {
+                this.els.input.focus();
+            }
+        }, 280);
+    }
+
+    undoDelete() {
+        if (this.deletedTodo) {
+            clearTimeout(this.undoTimeout);
+            this.todos.splice(this.deletedTodo.index, 0, this.deletedTodo.todo);
+            this.deletedTodo = null;
+            this.save();
+            this.render();
+            return true;
+        }
+        return false;
+    }
+
+    startEdit(id) {
+        this.editingId = id;
+        this.render();
+    }
+
+    saveEdit(input, id) {
+        const text = input.value.trim();
+        const t = this.todos.find(x => x.id === id);
+        if (t && text) t.text = text;
+        this.editingId = null;
+        this.save();
+        this.render();
+    }
+
+    cancelEdit() {
+        this.editingId = null;
+        this.render();
+    }
+
+    save() { localStorage.setItem('todos_v3', JSON.stringify(this.todos)); }
+
+    getFiltered() {
+        let list = [...this.todos];
+        if (this.filter === 'active') list = list.filter(t => !t.completed);
+        if (this.filter === 'completed') list = list.filter(t => t.completed);
+        if (this.searchTerm) list = list.filter(t => t.text.toLowerCase().includes(this.searchTerm));
+        return list;
+    }
+
+    updateProgress() {
+        const total = this.todos.length;
+        const done = this.todos.filter(t => t.completed).length;
+        const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+        const circ = 2 * Math.PI * 22;
+        const offset = circ - (pct / 100) * circ;
+        this.els.progressFill.style.strokeDashoffset = offset;
+        this.els.progressText.textContent = `${pct}%`;
+
+        if (pct === 100) this.els.progressFill.style.stroke = '#2f855a';
+        else if (pct >= 50) this.els.progressFill.style.stroke = '#b7791f';
+        else this.els.progressFill.style.stroke = '';
+    }
+
+    getSlaText(deadline) {
+        const diff = deadline - Date.now();
+        if (diff <= 0) return '🚨 BREACHED';
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        if (d > 0) return `⏳ ${d}d ${h}h`;
+        if (h > 0) return `⏳ ${h}h ${m}m`;
+        return `⏳ ${m}m ${s}s`;
+    }
+
+    getSlaClass(deadline) {
+        const diff = deadline - Date.now();
+        if (diff <= 0) return 'sla-breached';
+        if (diff < 3600000) return 'sla-warning';
+        return 'sla-ok';
+    }
+
+    manageInterval() {
+        const has = document.querySelectorAll('.sla-timer').length > 0;
+        if (has) {
+            if (!this.slaInterval) {
+                this.slaInterval = setInterval(() => {
+                    document.querySelectorAll('.sla-timer').forEach(el => {
+                        const d = parseInt(el.dataset.deadline);
+                        el.textContent = this.getSlaText(d);
+                        el.className = `sla-timer ${this.getSlaClass(d)}`;
+                    });
+                }, 1000);
+            }
+        } else {
+            if (this.slaInterval) { clearInterval(this.slaInterval); this.slaInterval = null; }
+        }
+    }
+
+    render() {
+        const todos = this.getFiltered();
+        this.els.list.innerHTML = '';
+
+        const active = this.todos.filter(t => !t.completed).length;
+        this.els.itemsLeft.textContent = `${active} item${active !== 1 ? 's' : ''} left`;
+
+        this.updateProgress();
+
+        if (todos.length === 0) {
+            this.els.list.innerHTML = '<li class="empty-state">Nothing here! Add your first task above.</li>';
+            this.manageInterval();
+            return;
+        }
+
+        todos.forEach(todo => {
+            const li = document.createElement('li');
+            li.className = `priority-${todo.priority}${todo.completed ? ' completed' : ''}`;
+            li.dataset.id = todo.id;
+            li.draggable = true;
+
+            if (todo.id === this.editingId) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'edit-input';
+                input.value = todo.text;
+                input.addEventListener('blur', () => this.saveEdit(input, todo.id));
+                input.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') input.blur();
+                    if (e.key === 'Escape') this.cancelEdit();
+                });
+                li.appendChild(input);
+                setTimeout(() => input.focus(), 0);
+            } else {
+                const span = document.createElement('span');
+                span.className = 'task-text';
+                span.textContent = todo.text;
+                span.title = 'Click to complete · Double-click to edit';
+                span.addEventListener('click', () => this.toggleTodo(todo.id));
+                span.addEventListener('dblclick', () => this.startEdit(todo.id));
+                li.appendChild(span);
+
+                const chip = document.createElement('span');
+                chip.className = 'priority-chip';
+                chip.textContent = todo.priority;
+                li.appendChild(chip);
+            }
+
+            if (todo.deadline) {
+                const sla = document.createElement('span');
+                sla.className = `sla-timer ${this.getSlaClass(todo.deadline)}`;
+                sla.textContent = this.getSlaText(todo.deadline);
+                sla.dataset.deadline = todo.deadline;
+                li.appendChild(sla);
+            }
+
+            const del = document.createElement('button');
+            del.className = 'delete-btn';
+            del.textContent = '×';
+            del.setAttribute('aria-label', `Delete ${todo.text}`);
+            del.addEventListener('click', e => { e.stopPropagation(); this.deleteTodo(todo.id, li); });
+            li.appendChild(del);
+
+            li.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', todo.id);
+                li.classList.add('dragging');
+            });
+            li.addEventListener('dragend', () => li.classList.remove('dragging'));
+            li.addEventListener('dragover', e => e.preventDefault());
+            li.addEventListener('drop', e => {
+                e.preventDefault();
+                const dragId = parseFloat(e.dataTransfer.getData('text/plain'));
+                if (dragId === todo.id) return;
+                const fromIdx = this.todos.findIndex(t => t.id === dragId);
+                const toIdx = this.todos.findIndex(t => t.id === todo.id);
+                if (fromIdx !== -1 && toIdx !== -1) {
+                    const [item] = this.todos.splice(fromIdx, 1);
+                    this.todos.splice(toIdx, 0, item);
+                    this.save();
+                    this.render();
+                }
+            });
+
+            this.els.list.appendChild(li);
+        });
+
+        this.manageInterval();
+    }
+
+    showUndoToast() {
+        this.els.toast.innerHTML = `<div class="toast">️ Task deleted <button class="undo-btn" id="undo-btn">Undo</button></div>`;
+        document.getElementById('undo-btn').addEventListener('click', () => {
+            if (this.undoDelete()) this.els.toast.innerHTML = '';
+        });
+        clearTimeout(this.undoTimeout);
+        this.undoTimeout = setTimeout(() => { this.els.toast.innerHTML = ''; this.deletedTodo = null; }, 5000);
+    }
+
+    showToast(message) {
+        this.els.toast.innerHTML = `<div class="toast">${message}</div>`;
+        setTimeout(() => { this.els.toast.innerHTML = ''; }, 2500);
+    }
+}
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+        .then(registration => {
+            console.log('Service Worker registered:', registration);
+        })
+        .catch(error => {
+            console.log('Service Worker registration failed:', error);
+        });
+}
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', () => new TodoApp());
+</script>
+</body>
+</html>
